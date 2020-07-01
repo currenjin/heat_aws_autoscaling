@@ -1,0 +1,126 @@
+heat_template_version: 2016-10-14
+description: Test AutoScaling
+parameters:
+  image:
+    type: string
+    description: Image used for servers
+    default: f12e80e1-770d-4fce-add1-c346b8220158
+  key:
+    type: string
+    description: SSH key to connect to the servers
+    default: key
+  flavor:
+    type: string
+    description: flavor used by the web servers
+    default: m1.default
+  network:
+    type: string
+    description: Network used by the server
+    default: aa602b33-05f0-455e-a064-a5aabdd3a26c
+  subnet_id:
+    type: string
+    description: subnet on which the load balancer will be located
+    default: fcea64c8-f04d-42bc-ac1d-ea51f04294be
+  external_network_id:
+    type: string
+    description: UUID of a Neutron external network
+    default: 755b292d-d999-483a-a974-72577038a1a3
+resources:
+  asg:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 3
+      resource:
+        type: lb_server.yaml
+        properties:
+          flavor: {get_param: flavor}
+          image: {get_param: image}
+          key_name: {get_param: key}
+          network: {get_param: network}
+          subnet: {get_param: subnet_id}
+          pool_id: {get_resource: pool}
+          metadata: {"metering.server_group": {get_param: "OS::stack_id"}}
+  web_server_scaleup_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: asg}
+      cooldown: 60
+      scaling_adjustment: 1
+  web_server_scaledown_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: asg}
+      cooldown: 60
+      scaling_adjustment: -1
+  cpu_alarm_high:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    properties:
+      description: Scale up if CPU > 60%
+      metric: cpu_util
+      aggregation_method: mean
+      granularity: 300
+      evaluation_periods: 1
+      threshold: 60
+      resource_type: instance
+      comparison_operator: gt
+      alarm_actions:
+        - {get_attr: [web_server_scaleup_policy, alarm_url]}
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "stack_id"}}'
+          params:
+            stack_id: {get_param: "OS::stack_id"}
+  cpu_alarm_low:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    properties:
+      description: Scale down if CPU < 15% for 5 minutes
+      metric: cpu_util
+      aggregation_method: mean
+      granularity: 300
+      evaluation_periods: 1
+      threshold: 15
+      resource_type: instance
+      comparison_operator: lt
+      alarm_actions:
+        - {get_attr: [web_server_scaledown_policy, alarm_url]}
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "stack_id"}}'
+          params:
+            stack_id: {get_param: "OS::stack_id"}
+  lb:
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
+      vip_subnet: {get_param: subnet_id}
+  listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: {get_resource: lb}
+      protocol: HTTP
+      protocol_port: 80
+  pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      listener: {get_resource: listener}
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      session_persistence:
+        type: SOURCE_IP
+  lb_monitor:
+    type: OS::Neutron::LBaaS::HealthMonitor
+    properties:
+      pool: { get_resource: pool }
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+  # assign a floating ip address to the load balancer
+  # pool.
+  lb_floating:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: {get_param: external_network_id}
+      port_id: {get_attr: [lb, vip_port_id]}

@@ -1,0 +1,4 @@
+{
+    "PolicyARN": "arn:aws:autoscaling:ap-northeast-2:872934350981:scalingPolicy:5233717c-d226-4893-be10-7c4b071f8226:autoScalingGroupName/WEB-ASG:policyName/UP-Policy",
+    "Alarms": []
+}
