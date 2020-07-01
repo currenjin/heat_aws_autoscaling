@@ -10,8 +10,8 @@
 # Create AutoScaling Group and Add on Target of LoadBalancer
 aws autoscaling create-auto-scaling-group --auto-scaling-group-name WEB-ASG \
 	--launch-configuration-name ASG-Config \
-	--vpc-zone-identifier "subnet-935a89f8,subnet-7870fc03,subnet-04f5f248" \
-	--target-group-arns "arn:aws:elasticloadbalancing:ap-northeast-2:872934350981:targetgroup/Target/2f97ef1a2ea2bce2" \
+	--vpc-zone-identifier "[Subnet-ID]" \
+	--target-group-arns "[LoadBalancer-Target-ARN]" \
 	--max-size 3 --min-size 1 --desired-capacity 1
 
 ### Threshold < 15% = instance -1
