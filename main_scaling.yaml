@@ -4,31 +4,31 @@ parameters:
   image:
     type: string
     description: Image used for servers
-    default: [image-id]
+    default: [Image-ID]
   key:
     type: string
     description: SSH key to connect to the servers
-    default: key
+    default: [Key-Name]
   flavor:
     type: string
     description: flavor used by the web servers
-    default: m1.default
+    default: [Flavor-Name]
   network:
     type: string
     description: Network used by the server
-    default: 
+    default: [Internal-Network-ID]
   subnet_id:
     type: string
     description: subnet on which the load balancer will be located
-    default: fcea64c8-f04d-42bc-ac1d-ea51f04294be
+    default: [Internal-Network-Subnet-ID]
   external_network_id:
     type: string
     description: Neutron external network
-    default: 22b36518-2c43-4242-aa56-5bb0222c0810
+    default: [External-Network-ID]
   pool_id:
     type: string
     description: add server on pool of loadbalancer
-    default: 03d84efa-02d1-4206-9a77-7c6472de529f
+    default: [LoadBalacner-Pool-ID]
 resources:
   asg:
     type: OS::Heat::AutoScalingGroup
@@ -95,8 +95,6 @@ resources:
           template: '{"=": {"server_group": "stack_id"}}'
           params:
             stack_id: {get_param: "OS::stack_id"}
-
-############### TEST Code
   scale_out_alarm:
     type: OS::Ceilometer::Alarm
     properties:
