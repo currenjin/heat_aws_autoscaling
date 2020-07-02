@@ -103,7 +103,7 @@ resources:
       statistic: avg
       period: 60
       evaluation_periods: 1
-      threshold: 28000
+      threshold: [bytes]
       repeat_actions: True
       alarm_actions:
         user_data:
@@ -117,7 +117,7 @@ resources:
       statistic: avg
       period: 180
       evaluation_periods: 1
-      threshold: 12000
+      threshold: [bytes]
       repeat_actions: True
       alarm_actions:
         user_data:
